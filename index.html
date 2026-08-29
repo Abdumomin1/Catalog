@@ -89,6 +89,26 @@
   .tbtn:hover{color:var(--accent);border-color:var(--accent)}
   .tbtn svg{width:17px;height:17px;display:block}
   #back{display:none;margin-left:0;margin-right:2px}
+  #lang{width:auto;padding:0 8px;gap:6px}
+  .brand{position:relative}
+  .flag{width:20px;height:14px;border-radius:3px;flex:0 0 auto;display:block;
+        box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+  .lcode{font-size:10.5px;font-weight:700;letter-spacing:.04em}
+
+  /* Меню выбора языка */
+  .lmenu{
+    position:absolute;top:calc(100% + 6px);right:0;z-index:40;display:none;
+    min-width:172px;padding:5px;border-radius:11px;
+    background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);
+  }
+  .lmenu.on{display:block}
+  .lmenu button{
+    display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;
+    border:0;border-radius:8px;background:none;cursor:pointer;text-align:left;
+    font-family:inherit;font-size:14px;color:var(--ink);
+  }
+  .lmenu button:hover{background:var(--surface-2)}
+  .lmenu button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
 
   /* Плитки категорий на главном экране */
   .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
@@ -261,6 +281,7 @@
     </button>
     <h1 id="title">Каталог</h1>
     <span class="sub" id="sub"></span>
+    <button id="lang" class="tbtn" type="button" aria-label="Язык / Til / Language">RU</button>
     <button id="theme" class="tbtn" type="button" aria-label="Тема оформления"></button>
   </div>
 
@@ -271,7 +292,7 @@
       <button id="clr" type="button" aria-label="Очистить поиск">&times;</button>
     </div>
     <button id="ftoggle" class="fbtn" type="button" aria-expanded="false" aria-controls="filters">
-      Фильтры<span id="fcount" class="cnt"></span>
+      <span id="flabel">Фильтры</span><span id="fcount" class="cnt"></span>
       <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
     </button>
@@ -290,12 +311,12 @@
 
 <main id="out"></main>
 <button id="more" type="button"></button>
-<footer>Остатки берутся из 1С и обновляются автоматически</footer>
+<footer id="foot">Остатки берутся из 1С и обновляются автоматически</footer>
 
 <div id="view" role="dialog" aria-modal="true">
   <img id="viewImg" alt="">
   <p id="viewTxt"></p>
-  <small>нажмите, чтобы закрыть</small>
+  <small id="closeHint">нажмите, чтобы закрыть</small>
 </div>
 
 <script>
@@ -307,6 +328,72 @@
   var DATA = [], NUMBERS = false, MINSTOCK = 1, BATCH = 24, HIDEOUT = false;
   var OUTLABEL = 'нет в наличии';
   var state = { cat: null, f: 'all', p: 'all', mode: 'all', q: '' };
+
+  // ─────────── Языки ───────────
+  var I18N = {
+    ru: {
+      catalog: 'Каталог', search: 'Декор или артикул', filters: 'Фильтры',
+      allF: 'Все заводы', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
+      low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
+      na: 'уточните остаток', m2: 'м²', none: 'Ничего не найдено', noPhoto: 'фото нет',
+      art: 'арт.', foot: 'Остатки берутся из 1С и обновляются автоматически',
+      close: 'нажмите, чтобы закрыть', back: 'К категориям',
+      themeAuto: 'Тема: как в системе', themeLight: 'Тема: светлая', themeDark: 'Тема: тёмная',
+      more: function(n, l){ return 'Показать ещё ' + n + ' из ' + l; },
+    },
+    uz: {
+      catalog: 'Katalog', search: 'Dekor yoki artikul', filters: 'Filtrlar',
+      allF: 'Barcha zavodlar', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
+      low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
+      na: 'qoldiqni aniqlang', m2: 'm²', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
+      art: 'art.', foot: 'Qoldiqlar 1C dan olinadi va avtomatik yangilanadi',
+      close: 'yopish uchun bosing', back: 'Kategoriyalar',
+      themeAuto: 'Mavzu: tizim bo‘yicha', themeLight: 'Mavzu: yorug‘', themeDark: 'Mavzu: qorong‘i',
+      more: function(n, l){ return 'Yana ' + n + ' ta ko‘rsatish (' + l + ' ta qoldi)'; },
+    },
+    en: {
+      catalog: 'Catalog', search: 'Decor or item no.', filters: 'Filters',
+      allF: 'All factories', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
+      low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
+      na: 'check stock', m2: 'm²', none: 'Nothing found', noPhoto: 'no photo',
+      art: 'no.', foot: 'Stock comes from 1C and updates automatically',
+      close: 'tap to close', back: 'Categories',
+      themeAuto: 'Theme: system', themeLight: 'Theme: light', themeDark: 'Theme: dark',
+      more: function(n, l){ return 'Show ' + n + ' more of ' + l; },
+    },
+  };
+  var LANGS = ['ru', 'uz', 'en'];
+  var lang = 'ru';
+
+  function T(){ return I18N[lang]; }
+
+  /** Известные категории переводятся, незнакомые показываются как в таблице. */
+  var CAT_NAMES = [
+    [/фурнитур/i,         { uz: 'Furnitura',        en: 'Hardware' }],
+    [/двер/i,             { uz: 'Eshiklar',         en: 'Doors' }],
+    [/паркет/i,           { uz: 'Parket',           en: 'Parquet' }],
+    [/ламинат/i,          { uz: 'Laminat',          en: 'Laminate' }],
+    [/панел|стен|декор/i, { uz: 'Devor panellari',  en: 'Wall panels' }],
+    [/профил|угол/i,      { uz: 'Profillar',        en: 'Profiles' }],
+    [/подлож/i,           { uz: 'Podlojka',         en: 'Underlay' }],
+    [/плинт/i,            { uz: 'Plintuslar',       en: 'Skirting' }],
+    [/компенсат|порог/i,  { uz: 'Kompensator',      en: 'Transition strips' }],
+  ];
+  function catName(c){
+    if (lang === 'ru') return c;
+    for (var i = 0; i < CAT_NAMES.length; i++) {
+      if (CAT_NAMES[i][0].test(c)) return CAT_NAMES[i][1][lang] || c;
+    }
+    return c;
+  }
+
+  /** Плашка нулевого остатка: стандартные надписи переводятся, свой текст — как есть. */
+  function outInfo(){
+    var k = OUTLABEL.trim().toLowerCase();
+    if (k === 'нет в наличии') return ['t-no',  T().out];
+    if (k === 'под заказ')     return ['t-ord', T().order];
+    return [/нет|yo['’`]?q|emas|out/i.test(OUTLABEL) ? 't-no' : 't-ord', OUTLABEL];
+  }
   var limit = BATCH;
   var tg = null;
 
@@ -326,7 +413,9 @@
 
   // ═══════════ Тема ═══════════
   var THEMES = ['auto', 'light', 'dark'];
-  var LABELS = { auto: 'Тема: как в системе', light: 'Тема: светлая', dark: 'Тема: тёмная' };
+  function themeLabel(t){
+    return t === 'light' ? T().themeLight : t === 'dark' ? T().themeDark : T().themeAuto;
+  }
   var ICONS = {
     auto:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'
          + '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
@@ -347,8 +436,8 @@
     if (eff) root.setAttribute('data-theme', eff); else root.removeAttribute('data-theme');
     var b = document.getElementById('theme');
     b.innerHTML = ICONS[t];
-    b.title = LABELS[t];
-    b.setAttribute('aria-label', LABELS[t]);
+    b.title = themeLabel(t);
+    b.setAttribute('aria-label', themeLabel(t));
   }
 
   var theme = THEMES.indexOf(store('theme')) >= 0 ? store('theme') : 'auto';
@@ -369,6 +458,7 @@
         tg.onEvent('themeChanged', function(){ if (theme === 'auto') applyTheme('auto'); });
         tg.onEvent('backButtonClicked', function(){ goHome(); });
       }
+      if (window.tgLang) tgLang();       // язык из профиля Telegram, пока нет явного выбора
     } catch (e) {}
   };
   window.tgInit();
@@ -395,13 +485,10 @@
   function inStock(it){ return it.q !== null && !isNaN(it.q) && it.q >= MINSTOCK; }
 
   function tagOf(it){
-    if (it.q === null || isNaN(it.q)) return ['t-na', 'уточните остаток'];
-    if (it.q < MINSTOCK){
-      var alarm = /нет|нед|yo['’]?q/i.test(OUTLABEL);
-      return [alarm ? 't-no' : 't-ord', OUTLABEL];
-    }
-    if (it.q < it.w)                  return ['t-low', 'мало · ' + fmt(it.q) + ' м²'];
-    return ['', NUMBERS ? fmt(it.q) + ' м²' : 'в наличии'];
+    if (it.q === null || isNaN(it.q)) return ['t-na', T().na];
+    if (it.q < MINSTOCK)              return outInfo();
+    if (it.q < it.w)                  return ['t-low', T().low + ' · ' + fmt(it.q) + ' ' + T().m2];
+    return ['', NUMBERS ? fmt(it.q) + ' ' + T().m2 : T().inst];
   }
 
   function uniq(items, key){
@@ -483,11 +570,11 @@
                                           '" data-art="' + esc(it.a) + '" tabindex="0"' : '') + '>'
          +     (it.i
                  ? '<img src="' + esc(imgUrl(it.i)) + '" alt="' + esc(it.d) + '" loading="lazy" decoding="async">'
-                 : '<div class="blank">фото нет</div>')
+                 : '<div class="blank">' + esc(T().noPhoto) + '</div>')
          +   '</div>'
          +   '<div class="info">'
          +     '<div class="decor">' + esc(it.d) + '</div>'
-         +     '<div class="meta"><span class="art">арт. ' + esc(it.a || '—') + '</span>'
+         +     '<div class="meta"><span class="art">' + esc(T().art) + ' ' + esc(it.a || '—') + '</span>'
          +       (it.p ? '<span class="spec">' + esc(it.p) + '</span>' : '') + '</div>'
          +     '<span class="tag ' + tag[0] + '">' + esc(tag[1]) + '</span>'
          +   '</div>'
@@ -498,9 +585,9 @@
     if (reset !== false) limit = BATCH;
 
     var cat = inCat();
-    chipRow(elF, uniq(cat, 'f'), 'f', 'Все заводы');
+    chipRow(elF, uniq(cat, 'f'), 'f', T().allF);
     var byFactory = cat.filter(function(it){ return state.f === 'all' || it.f === state.f; });
-    chipRow(elP, uniq(byFactory, 'p'), 'p', 'Любая');
+    chipRow(elP, uniq(byFactory, 'p'), 'p', T().any);
     updateCount();
 
     var all = selected();
@@ -526,11 +613,11 @@
     });
 
     document.getElementById('out').innerHTML =
-      all.length ? html : '<div class="none">Ничего не найдено</div>';
+      all.length ? html : '<div class="none">' + esc(T().none) + '</div>';
 
     var left = all.length - visible.length;
     moreBtn.classList.toggle('on', left > 0);
-    moreBtn.textContent = left > 0 ? 'Показать ещё ' + Math.min(left, BATCH) + ' из ' + left : '';
+    moreBtn.textContent = left > 0 ? T().more(Math.min(left, BATCH), left) : '';
   }
 
   moreBtn.addEventListener('click', function(){ limit += BATCH; render(false); });
@@ -550,7 +637,7 @@
     if (!el.dataset.img) return;
     document.getElementById('viewImg').src = imgUrl(el.dataset.img, true);
     document.getElementById('viewTxt').textContent =
-      el.dataset.name + (el.dataset.art ? ' · арт. ' + el.dataset.art : '');
+      el.dataset.name + (el.dataset.art ? ' · ' + T().art + ' ' + el.dataset.art : '');
     view.classList.add('on');
   }
   document.getElementById('out').addEventListener('click', function(ev){
@@ -565,6 +652,122 @@
   document.addEventListener('keydown', function(ev){
     if (ev.key === 'Escape') view.classList.remove('on');
   });
+
+  // ═══════════ Язык ═══════════
+  function applyLang(rerender){
+    var lb = document.getElementById('lang');
+    lb.innerHTML = LANG_META[lang].flag + '<span class="lcode">' + LANG_META[lang].code + '</span>';
+    lb.title = LANG_META[lang].name;
+    q.placeholder = T().search;
+    document.getElementById('flabel').textContent = T().filters;
+    document.getElementById('foot').textContent = T().foot;
+    document.getElementById('closeHint').textContent = T().close;
+    document.getElementById('back').setAttribute('aria-label', T().back);
+
+    var m = document.getElementById('modes');
+    m.querySelector('[data-mode="all"]').textContent = T().all;
+    m.querySelector('[data-mode="in"]').textContent  = T().instock;
+    m.querySelector('[data-mode="low"]').textContent = T().lowF;
+
+    applyTheme(theme);                     // обновить подписи кнопки темы
+
+    if (rerender !== false && DATA.length) {
+      if (state.cat === null && categories().length > 1) { chrome(true); renderHome(); }
+      else { chrome(false); render(false); }
+    }
+  }
+
+  // Флаги нарисованы SVG — эмодзи-флаги на Windows превращаются в буквы «GB»
+  var LANG_META = {
+    ru: {
+      code: 'RU', name: 'Русский',
+      flag: '<svg class="flag" viewBox="0 0 20 14"><rect width="20" height="14" fill="#fff"/>' +
+            '<rect y="4.67" width="20" height="4.66" fill="#0039A6"/>' +
+            '<rect y="9.33" width="20" height="4.67" fill="#D52B1E"/></svg>',
+    },
+    uz: {
+      code: 'UZ', name: 'O‘zbekcha',
+      flag: '<svg class="flag" viewBox="0 0 20 14"><rect width="20" height="14" fill="#fff"/>' +
+            '<rect width="20" height="4.5" fill="#0099B5"/>' +
+            '<rect y="9.5" width="20" height="4.5" fill="#1EB53A"/>' +
+            '<rect y="4.5" width="20" height="0.62" fill="#CE1126"/>' +
+            '<rect y="8.88" width="20" height="0.62" fill="#CE1126"/>' +
+            '<circle cx="3.1" cy="2.25" r="1.5" fill="#fff"/>' +
+            '<circle cx="3.75" cy="2.05" r="1.25" fill="#0099B5"/></svg>',
+    },
+    en: {
+      code: 'ENG', name: 'English',
+      flag: '<svg class="flag" viewBox="0 0 20 14"><rect width="20" height="14" fill="#012169"/>' +
+            '<path d="M0 0l20 14M20 0L0 14" stroke="#fff" stroke-width="2.8"/>' +
+            '<path d="M0 0l20 14M20 0L0 14" stroke="#C8102E" stroke-width="1.2"/>' +
+            '<path d="M10 0v14M0 7h20" stroke="#fff" stroke-width="4.6"/>' +
+            '<path d="M10 0v14M0 7h20" stroke="#C8102E" stroke-width="2.6"/></svg>',
+    },
+  };
+
+  var langBtn  = document.getElementById('lang');
+  var langMenu = document.createElement('div');
+  langMenu.className = 'lmenu';
+  langBtn.parentNode.appendChild(langMenu);
+
+  function drawLangMenu(){
+    langMenu.innerHTML = LANGS.map(function(l){
+      return '<button type="button" data-l="' + l + '" aria-pressed="' + (l === lang) + '">' +
+             LANG_META[l].flag + LANG_META[l].name + '</button>';
+    }).join('');
+  }
+
+  function setLang(l){
+    langMenu.classList.remove('on');
+    if (LANGS.indexOf(l) < 0 || l === lang) return;
+    lang = l;
+    store('lang', l);
+    // выбор хранится в аккаунте Telegram дилера и переезжает между устройствами
+    try { if (tg && tg.CloudStorage) tg.CloudStorage.setItem('lang', l, function(){}); } catch (e) {}
+    applyLang();
+  }
+
+  langBtn.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    drawLangMenu();
+    langMenu.classList.toggle('on');
+  });
+  langMenu.addEventListener('click', function(ev){
+    var b = ev.target.closest('button');
+    if (b) setLang(b.dataset.l);
+  });
+  document.addEventListener('click', function(){ langMenu.classList.remove('on'); });
+
+  var savedLang = store('lang');
+  if (LANGS.indexOf(savedLang) >= 0) lang = savedLang;
+
+  // Порядок выбора языка при входе: аккаунт Telegram → память браузера → язык профиля
+  window.tgLang = function(){
+    function autoDetect(){
+      if (store('lang')) return;           // явный выбор важнее автоопределения
+      try {
+        var code = tg && tg.initDataUnsafe && tg.initDataUnsafe.user &&
+                   tg.initDataUnsafe.user.language_code || '';
+        var auto = code.indexOf('uz') === 0 ? 'uz' : code.indexOf('en') === 0 ? 'en' : '';
+        if (auto && auto !== lang) { lang = auto; applyLang(); }
+      } catch (e) {}
+    }
+    try {
+      if (tg && tg.CloudStorage && tg.CloudStorage.getItem) {
+        tg.CloudStorage.getItem('lang', function(err, v){
+          if (!err && v && LANGS.indexOf(v) >= 0) {
+            if (v !== lang) { lang = v; store('lang', v); applyLang(); }
+          } else {
+            autoDetect();
+          }
+        });
+        return;
+      }
+    } catch (e) {}
+    autoDetect();
+  };
+
+  applyLang(false);
 
   // ═══════════ Данные: мгновенно из кэша, свежее — следом ═══════════
   function applyPayload(p){
@@ -589,17 +792,27 @@
 
   /** Иконка подбирается по названию категории; незнакомым — коробка. */
   var SVG_ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">';
+  // Порядок важен: «Фурнитура (дверная)» проверяется раньше дверей,
+  // «Паркет» — раньше ламината, «Стеновые панели и профили» — раньше профиля.
   var CAT_ICONS = [
-    [/двер/i,
+    [/фурнитур|ручк|замк/i,                 // дверная ручка на розетке
+      SVG_ + '<circle cx="7.3" cy="12" r="3.1"/><path d="M10.4 11h8.1a1.6 1.6 0 0 1 1.6 1.6V16"/></svg>'],
+    [/двер/i,                               // дверной проём
       SVG_ + '<path d="M5 20V5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5V20"/><path d="M3 20h18"/><circle cx="15.3" cy="12.3" r="1" fill="currentColor" stroke="none"/></svg>'],
-    [/плинт/i,
-      SVG_ + '<path d="M6 3v18"/><path d="M3 21h18"/><path d="M6 13h3.2a1.3 1.3 0 0 1 1.3 1.3V21"/></svg>'],
-    [/подлож/i,
-      SVG_ + '<path d="M12 3 21 8l-9 5-9-5 9-5z"/><path d="m3 12.2 9 5 9-5"/><path d="m3 16.2 9 5 9-5"/></svg>'],
-    [/панел|декор|стен/i,
-      SVG_ + '<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M8.2 4v16M12.9 4v16M17.6 4v16"/></svg>'],
-    [/ламинат|пол|паркет/i,
+    [/паркет/i,                             // диагональная укладка
+      SVG_ + '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 11.5 10.5 4M3 18 17 4M8.5 20 21 7.5M15 20l6-6"/></svg>'],
+    [/ламинат|пол/i,                        // доски вразбежку
       SVG_ + '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9.3h18M3 14.6h18M12 4v5.3M7.5 9.3v5.3M16 14.6V20"/></svg>'],
+    [/панел|стен|декор/i,                   // рейки на стене
+      SVG_ + '<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M8.2 4v16M12.9 4v16M17.6 4v16"/></svg>'],
+    [/профил|угол|алюмин/i,                 // уголок-профиль в сечении
+      SVG_ + '<path d="M6 3v13a2.5 2.5 0 0 0 2.5 2.5H21"/><path d="M10.5 3v9a2 2 0 0 0 2 2H21"/></svg>'],
+    [/подлож/i,                             // слои
+      SVG_ + '<path d="M12 3 21 8l-9 5-9-5 9-5z"/><path d="m3 12.2 9 5 9-5"/><path d="m3 16.2 9 5 9-5"/></svg>'],
+    [/плинт/i,                              // профиль плинтуса у стены
+      SVG_ + '<path d="M6 3v18"/><path d="M3 21h18"/><path d="M6 13h3.2a1.3 1.3 0 0 1 1.3 1.3V21"/></svg>'],
+    [/компенсат|порог|молдинг/i,            // Т-порожек между двумя полами
+      SVG_ + '<path d="M8.3 10.5h7.4"/><path d="M12 10.5V18"/><path d="M3 13.5h5M16 13.5h5"/><path d="M3 18h6M15 18h6"/></svg>'],
   ];
   var CAT_DEFAULT =
       SVG_ + '<path d="M21 8.2 12 12.7 3 8.2 12 3.8l9 4.4z"/><path d="M3 8.2v7.6l9 4.4 9-4.4V8.2"/><path d="M12 12.7v7.5"/></svg>';
@@ -616,7 +829,7 @@
     document.querySelector('.topline').style.display = home ? 'none' : '';
     if (home) { panel.hidden = true; ftog.setAttribute('aria-expanded', 'false'); }
     document.getElementById('back').style.display = (!home && multi) ? 'flex' : 'none';
-    document.getElementById('title').textContent = home || !multi ? 'Каталог' : state.cat;
+    document.getElementById('title').textContent = home || !multi ? T().catalog : catName(state.cat);
     try {
       if (tg && tg.BackButton) { if (!home && multi) tg.BackButton.show(); else tg.BackButton.hide(); }
     } catch (e) {}
@@ -633,7 +846,7 @@
       return '<button class="catile" data-cat="' + esc(c) + '" type="button">'
            +   '<span class="ic">' + iconFor(c) + '</span>'
            +   '<span class="ct">' + count[c] + '</span>'
-           +   '<span class="nm">' + esc(c) + '</span>'
+           +   '<span class="nm">' + esc(catName(c)) + '</span>'
            + '</button>';
     }).join('') + '</div>';
 
