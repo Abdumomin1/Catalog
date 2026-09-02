@@ -618,6 +618,12 @@
 
     var all = selected();
 
+    // Продвижение: позиции с большим «Приоритетом» выходят первыми и поднимают
+    // свою коллекцию в начало. Для дилера это выглядит просто порядком каталога.
+    all = all.map(function(it, i){ return [it, i]; })
+             .sort(function(a, b){ return (b[0].b || 0) - (a[0].b || 0) || a[1] - b[1]; })
+             .map(function(p){ return p[0]; });
+
     var specific = state.p !== 'all';
     function keyOf(it){ return (specific || !it.p) ? it.c : it.p + ' · ' + it.c; }
 
