@@ -260,6 +260,9 @@
     text-align:center;color:var(--muted);font-size:11px;
     padding:22px 16px 34px;border-top:1px solid var(--line);margin-top:22px;
   }
+  .byline{margin-top:7px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;
+          text-transform:uppercase;color:var(--muted);opacity:.75}
+  .byline b{color:var(--accent);font-weight:600}
 
   #view{
     position:fixed;inset:0;z-index:60;display:none;background:rgba(12,10,8,.94);
@@ -269,6 +272,10 @@
   #view img{max-width:100%;max-height:76vh;object-fit:contain;border-radius:8px}
   #view p{margin:0;color:#f2ede6;font-size:13px;text-align:center;max-width:460px;line-height:1.4}
   #view small{color:#a49a8e;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:Oswald,sans-serif}
+  .vsizes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px}
+  .vsz{background:rgba(255,255,255,.14);color:#f2ede6;padding:5px 11px;border-radius:8px;
+       font-size:13px;font-variant-numeric:tabular-nums}
+  .vsz.z{opacity:.5;text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -311,11 +318,14 @@
 
 <main id="out"></main>
 <button id="more" type="button"></button>
-<footer id="foot">Остатки берутся из 1С и обновляются автоматически</footer>
+<footer><span id="foot">Остатки берутся из 1С и обновляются автоматически</span>
+  <div class="byline">created by <b>Phenomen</b></div>
+</footer>
 
 <div id="view" role="dialog" aria-modal="true">
   <img id="viewImg" alt="">
   <p id="viewTxt"></p>
+  <div id="viewSizes" class="vsizes"></div>
   <small id="closeHint">нажмите, чтобы закрыть</small>
 </div>
 
@@ -335,7 +345,7 @@
       catalog: 'Каталог', search: 'Декор или артикул', filters: 'Фильтры',
       allF: 'Все заводы', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
       low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
-      na: 'уточните остаток', m2: 'м²', none: 'Ничего не найдено', noPhoto: 'фото нет',
+      na: 'уточните остаток', m2: 'м²', pcs: 'шт', none: 'Ничего не найдено', noPhoto: 'фото нет',
       art: 'арт.', foot: 'Остатки берутся из 1С и обновляются автоматически',
       close: 'нажмите, чтобы закрыть', back: 'К категориям',
       themeAuto: 'Тема: как в системе', themeLight: 'Тема: светлая', themeDark: 'Тема: тёмная',
@@ -345,7 +355,7 @@
       catalog: 'Katalog', search: 'Dekor yoki artikul', filters: 'Filtrlar',
       allF: 'Barcha zavodlar', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
       low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
-      na: 'qoldiqni aniqlang', m2: 'm²', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
+      na: 'qoldiqni aniqlang', m2: 'm²', pcs: 'dona', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
       art: 'art.', foot: 'Qoldiqlar 1C dan olinadi va avtomatik yangilanadi',
       close: 'yopish uchun bosing', back: 'Kategoriyalar',
       themeAuto: 'Mavzu: tizim bo‘yicha', themeLight: 'Mavzu: yorug‘', themeDark: 'Mavzu: qorong‘i',
@@ -355,7 +365,7 @@
       catalog: 'Catalog', search: 'Decor or item no.', filters: 'Filters',
       allF: 'All factories', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
       low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
-      na: 'check stock', m2: 'm²', none: 'Nothing found', noPhoto: 'no photo',
+      na: 'check stock', m2: 'm²', pcs: 'pcs', none: 'Nothing found', noPhoto: 'no photo',
       art: 'no.', foot: 'Stock comes from 1C and updates automatically',
       close: 'tap to close', back: 'Categories',
       themeAuto: 'Theme: system', themeLight: 'Theme: light', themeDark: 'Theme: dark',
@@ -484,11 +494,19 @@
 
   function inStock(it){ return it.q !== null && !isNaN(it.q) && it.q >= MINSTOCK; }
 
+  /** Единица измерения позиции: у ламината м², у дверей шт, из колонки «Ед.» — что угодно. */
+  function unitOf(it){
+    var u = String(it.u || '').toLowerCase();
+    if (!u || u === 'м²' || u === 'м2' || u === 'm2') return T().m2;
+    if (u === 'шт' || u === 'шт.') return T().pcs;
+    return it.u;
+  }
+
   function tagOf(it){
     if (it.q === null || isNaN(it.q)) return ['t-na', T().na];
     if (it.q < MINSTOCK)              return outInfo();
-    if (it.q < it.w)                  return ['t-low', T().low + ' · ' + fmt(it.q) + ' ' + T().m2];
-    return ['', NUMBERS ? fmt(it.q) + ' ' + T().m2 : T().inst];
+    if (it.q < it.w)                  return ['t-low', T().low + ' · ' + fmt(it.q) + ' ' + unitOf(it)];
+    return ['', NUMBERS ? fmt(it.q) + ' ' + unitOf(it) : T().inst];
   }
 
   function uniq(items, key){
@@ -558,16 +576,23 @@
       if (state.p !== 'all' && it.p !== state.p) return false;
       if (state.mode === 'in'  && !inStock(it)) return false;
       if (state.mode === 'low' && !(inStock(it) && it.q < it.w)) return false;
-      if (state.q && (it.d + ' ' + it.a + ' ' + it.c).toLowerCase().indexOf(state.q) < 0) return false;
+      if (state.q) {
+        var hay = it.d + ' ' + it.a + ' ' + it.c +
+                  (it.v ? ' ' + it.v.map(function(p){ return p[0]; }).join(' ') : '');
+        if (hay.toLowerCase().indexOf(state.q) < 0) return false;
+      }
       return true;
     });
   }
 
+  var REG = [];   // карточки текущей отрисовки — для просмотрщика
+
   function cardHtml(it){
     var tag = tagOf(it);
+    REG.push(it);
+    var open = it.i || (it.v && it.v.length);      // открывается фото или список размеров
     return '<article class="card">'
-         +   '<div class="shot"' + (it.i ? ' data-img="' + esc(it.i) + '" data-name="' + esc(it.d) +
-                                          '" data-art="' + esc(it.a) + '" tabindex="0"' : '') + '>'
+         +   '<div class="shot"' + (open ? ' data-vi="' + (REG.length - 1) + '" tabindex="0"' : '') + '>'
          +     (it.i
                  ? '<img src="' + esc(imgUrl(it.i)) + '" alt="' + esc(it.d) + '" loading="lazy" decoding="async">'
                  : '<div class="blank">' + esc(T().noPhoto) + '</div>')
@@ -583,6 +608,7 @@
 
   function render(reset){
     if (reset !== false) limit = BATCH;
+    REG.length = 0;
 
     var cat = inCat();
     chipRow(elF, uniq(cat, 'f'), 'f', T().allF);
@@ -634,10 +660,31 @@
   // ═══════════ Просмотр фото ═══════════
   var view = document.getElementById('view');
   function openView(el){
-    if (!el.dataset.img) return;
-    document.getElementById('viewImg').src = imgUrl(el.dataset.img, true);
+    var it = REG[+el.dataset.vi];
+    if (!it) return;
+
+    var im = document.getElementById('viewImg');
+    if (it.i) { im.src = imgUrl(it.i, true); im.style.display = ''; }
+    else      { im.removeAttribute('src'); im.style.display = 'none'; }
+
     document.getElementById('viewTxt').textContent =
-      el.dataset.name + (el.dataset.art ? ' · ' + T().art + ' ' + el.dataset.art : '');
+      it.d + (it.a ? ' · ' + T().art + ' ' + it.a : '');
+
+    // остатки по размерам: «600 — 5 шт · 700 — 1 шт …», нулевые перечёркнуты
+    var vs = document.getElementById('viewSizes');
+    if (it.v && it.v.length) {
+      vs.innerHTML = it.v.map(function(p){
+        var q   = p[1];
+        var txt = p[0] + ' — ' + (q === null ? '?' : fmt(q)) + ' ' + unitOf(it);
+        var z   = q !== null && q < MINSTOCK;
+        return '<span class="vsz' + (z ? ' z' : '') + '">' + esc(txt) + '</span>';
+      }).join('');
+      vs.style.display = '';
+    } else {
+      vs.innerHTML = '';
+      vs.style.display = 'none';
+    }
+
     view.classList.add('on');
   }
   document.getElementById('out').addEventListener('click', function(ev){
