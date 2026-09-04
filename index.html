@@ -224,6 +224,7 @@
     margin-left:auto;padding:1px 6px;border-radius:4px;background:var(--surface-2);
     font-family:Oswald,sans-serif;letter-spacing:.04em;white-space:nowrap;
   }
+  .pack{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-1px}
   .tag{
     margin-top:auto;align-self:flex-start;font-size:11.5px;font-weight:600;
     padding:3px 8px;border-radius:5px;font-variant-numeric:tabular-nums;
@@ -276,6 +277,11 @@
   .vsz{background:rgba(255,255,255,.14);color:#f2ede6;padding:5px 11px;border-radius:8px;
        font-size:13px;font-variant-numeric:tabular-nums}
   .vsz.z{opacity:.5;text-decoration:line-through}
+  .vspec{width:100%;max-width:420px;border-collapse:collapse;font-size:12.5px}
+  .vspec td{padding:5px 2px;border-bottom:1px solid rgba(255,255,255,.12);color:#f2ede6}
+  .vspec td:first-child{color:#a49a8e;white-space:nowrap;padding-right:14px}
+  .vspec td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .vspec tr:last-child td{border-bottom:0}
 </style>
 </head>
 <body>
@@ -319,13 +325,14 @@
 <main id="out"></main>
 <button id="more" type="button"></button>
 <footer><span id="foot" hidden></span>
-  <div class="byline">created by <b>Phenomen&Azizbek</b></div>
+  <div class="byline">created by <b>Phenomen</b></div>
 </footer>
 
 <div id="view" role="dialog" aria-modal="true">
   <img id="viewImg" alt="">
   <p id="viewTxt"></p>
   <div id="viewSizes" class="vsizes"></div>
+  <table id="viewSpec" class="vspec"></table>
   <small id="closeHint">нажмите, чтобы закрыть</small>
 </div>
 
@@ -347,7 +354,10 @@
       allF: 'Все заводы', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
       low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
       na: 'уточните остаток', m2: 'м²', pcs: 'шт', none: 'Ничего не найдено', noPhoto: 'фото нет',
-      art: 'арт.',
+      art: 'арт.', factory: 'Завод', collection: 'Коллекция', thickness: 'Толщина',
+      klass: 'Класс', chamfer: 'Фаска', length: 'Длина', width: 'Ширина', planks: 'Плашек в пачке',
+      perPack: 'В пачке', perPallet: 'В паллете',
+      yes: 'есть', no: 'нет', packs: 'пач.', specs: 'Характеристики',
       close: 'нажмите, чтобы закрыть', back: 'К категориям',
       themeAuto: 'Тема: как в системе', themeLight: 'Тема: светлая', themeDark: 'Тема: тёмная',
       more: function(n, l){ return 'Показать ещё ' + n + ' из ' + l; },
@@ -357,7 +367,10 @@
       allF: 'Barcha zavodlar', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
       low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
       na: 'qoldiqni aniqlang', m2: 'm²', pcs: 'dona', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
-      art: 'art.',
+      art: 'art.', factory: 'Zavod', collection: 'Kolleksiya', thickness: 'Qalinlik',
+      klass: 'Sinf', chamfer: 'Faska', length: 'Uzunlik', width: 'Kenglik', planks: 'Paketda lavha',
+      perPack: 'Paketda', perPallet: 'Palletda',
+      yes: 'bor', no: 'yo‘q', packs: 'paket', specs: 'Xususiyatlar',
       close: 'yopish uchun bosing', back: 'Kategoriyalar',
       themeAuto: 'Mavzu: tizim bo‘yicha', themeLight: 'Mavzu: yorug‘', themeDark: 'Mavzu: qorong‘i',
       more: function(n, l){ return 'Yana ' + n + ' ta ko‘rsatish (' + l + ' ta qoldi)'; },
@@ -367,7 +380,10 @@
       allF: 'All factories', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
       low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
       na: 'check stock', m2: 'm²', pcs: 'pcs', none: 'Nothing found', noPhoto: 'no photo',
-      art: 'no.',
+      art: 'no.', factory: 'Factory', collection: 'Collection', thickness: 'Thickness',
+      klass: 'Class', chamfer: 'Bevel', length: 'Length', width: 'Width', planks: 'Planks per pack',
+      perPack: 'Per pack', perPallet: 'Per pallet',
+      yes: 'yes', no: 'no', packs: 'packs', specs: 'Specifications',
       close: 'tap to close', back: 'Categories',
       themeAuto: 'Theme: system', themeLight: 'Theme: light', themeDark: 'Theme: dark',
       more: function(n, l){ return 'Show ' + n + ' more of ' + l; },
@@ -502,6 +518,26 @@
 
   function inStock(it){ return it.q !== null && !isNaN(it.q) && it.q >= MINSTOCK; }
 
+  /** Таблица характеристик для увеличенной карточки. Пустые поля пропускаются. */
+  function specRows(it){
+    var s = it.s || {}, r = [];
+    if (it.f && it.f !== "—") r.push([T().factory, it.f]);
+    if (it.c) r.push([T().collection, it.c]);
+    if (s.th) r.push([T().thickness, s.th + " мм"]);
+    if (s.cl) r.push([T().klass, s.cl]);
+    if (s.ch !== undefined) r.push([T().chamfer, s.ch ? T().yes : T().no]);
+    if (s.ln) r.push([T().length, fmt(s.ln) + " мм"]);
+    if (s.wd) r.push([T().width, fmt(s.wd) + " мм"]);
+    if (s.pn) r.push([T().planks, s.pn]);
+    if (s.pk) r.push([T().perPack, fmt(s.pk) + " " + T().m2]);
+    if (s.pd) {
+      var v = s.pd + " " + T().packs;
+      if (s.pk) v += " · " + fmt(s.pd * s.pk) + " " + T().m2;
+      r.push([T().perPallet, v]);
+    }
+    return r;
+  }
+
   /** Единица измерения позиции: у ламината м², у дверей шт, из колонки «Ед.» — что угодно. */
   function unitOf(it){
     var u = String(it.u || '').toLowerCase();
@@ -598,9 +634,9 @@
   function cardHtml(it){
     var tag = tagOf(it);
     REG.push(it);
-    var open = it.i || (it.v && it.v.length);      // открывается фото или список размеров
+    // Карточка раскрывается всегда: внутри фото, размеры и характеристики
     return '<article class="card">'
-         +   '<div class="shot"' + (open ? ' data-vi="' + (REG.length - 1) + '" tabindex="0"' : '') + '>'
+         +   '<div class="shot" data-vi="' + (REG.length - 1) + '" tabindex="0">'
          +     (it.i
                  ? '<img src="' + esc(imgUrl(it.i)) + '" alt="' + esc(it.d) + '" loading="lazy" decoding="async">'
                  : '<div class="blank">' + esc(T().noPhoto) + '</div>')
@@ -609,6 +645,7 @@
          +     '<div class="decor">' + esc(it.d) + '</div>'
          +     '<div class="meta"><span class="art">' + esc(T().art) + ' ' + esc(it.a || '—') + '</span>'
          +       (it.p ? '<span class="spec">' + esc(it.p) + '</span>' : '') + '</div>'
+         +     (it.s && it.s.pk ? '<div class="pack">' + fmt(it.s.pk) + ' ' + T().m2 + ' · ' + T().perPack.toLowerCase() + '</div>' : '')
          +     '<span class="tag ' + tag[0] + '">' + esc(tag[1]) + '</span>'
          +   '</div>'
          + '</article>';
@@ -694,6 +731,13 @@
       it.d + (it.a ? ' · ' + T().art + ' ' + it.a : '');
 
     // остатки по размерам: «600 — 5 шт · 700 — 1 шт …», нулевые перечёркнуты
+    var sp = document.getElementById("viewSpec");
+    var rowsSp = specRows(it);
+    sp.innerHTML = rowsSp.map(function(p){
+      return "<tr><td>" + esc(p[0]) + "</td><td>" + esc(p[1]) + "</td></tr>";
+    }).join("");
+    sp.style.display = rowsSp.length ? "" : "none";
+
     var vs = document.getElementById('viewSizes');
     if (it.v && it.v.length) {
       vs.innerHTML = it.v.map(function(p){
