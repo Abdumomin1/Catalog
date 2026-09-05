@@ -265,14 +265,27 @@
           text-transform:uppercase;color:var(--muted);opacity:.75}
   .byline b{color:var(--accent);font-weight:600}
 
+  /* Лист с прокруткой: фото сверху, характеристики под ним.
+     Подложка непрозрачная — сетка позади не должна просвечивать. */
   #view{
-    position:fixed;inset:0;z-index:60;display:none;background:rgba(12,10,8,.94);
-    flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:18px;
+    position:fixed;inset:0;z-index:60;display:none;background:#0c0a08;
+    flex-direction:column;align-items:center;gap:12px;
+    padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   #view.on{display:flex}
-  #view img{max-width:100%;max-height:76vh;object-fit:contain;border-radius:8px}
-  #view p{margin:0;color:#f2ede6;font-size:13px;text-align:center;max-width:460px;line-height:1.4}
-  #view small{color:#a49a8e;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:Oswald,sans-serif}
+  #view img{
+    flex:0 0 auto;width:100%;max-width:420px;max-height:42vh;
+    object-fit:contain;border-radius:10px;
+  }
+  #view p{margin:0;color:#f2ede6;font-size:14px;font-weight:600;text-align:center;max-width:460px;line-height:1.35}
+  #vclose{
+    position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:2;
+    width:34px;height:34px;padding:0;border:0;border-radius:50%;cursor:pointer;
+    background:rgba(255,255,255,.16);color:#f2ede6;font:20px/34px inherit;text-align:center;
+  }
+  #vclose:hover{background:rgba(255,255,255,.26)}
+  #view small{color:#8f8579;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-family:Oswald,sans-serif}
   .vsizes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px}
   .vsz{background:rgba(255,255,255,.14);color:#f2ede6;padding:5px 11px;border-radius:8px;
        font-size:13px;font-variant-numeric:tabular-nums}
@@ -329,6 +342,7 @@
 </footer>
 
 <div id="view" role="dialog" aria-modal="true">
+  <button id="vclose" type="button" aria-label="Закрыть">&times;</button>
   <img id="viewImg" alt="">
   <p id="viewTxt"></p>
   <div id="viewSizes" class="vsizes"></div>
@@ -358,7 +372,7 @@
       klass: 'Класс', chamfer: 'Фаска', length: 'Длина', width: 'Ширина', planks: 'Плашек в пачке',
       perPack: 'В пачке', perPallet: 'В паллете',
       yes: 'есть', no: 'нет', packs: 'пач.', specs: 'Характеристики',
-      close: 'нажмите, чтобы закрыть', back: 'К категориям',
+      close: 'нажмите на фон, чтобы закрыть', back: 'К категориям',
       themeAuto: 'Тема: как в системе', themeLight: 'Тема: светлая', themeDark: 'Тема: тёмная',
       more: function(n, l){ return 'Показать ещё ' + n + ' из ' + l; },
     },
@@ -371,7 +385,7 @@
       klass: 'Sinf', chamfer: 'Faska', length: 'Uzunlik', width: 'Kenglik', planks: 'Paketda lavha',
       perPack: 'Paketda', perPallet: 'Palletda',
       yes: 'bor', no: 'yo‘q', packs: 'paket', specs: 'Xususiyatlar',
-      close: 'yopish uchun bosing', back: 'Kategoriyalar',
+      close: 'yopish uchun fonga bosing', back: 'Kategoriyalar',
       themeAuto: 'Mavzu: tizim bo‘yicha', themeLight: 'Mavzu: yorug‘', themeDark: 'Mavzu: qorong‘i',
       more: function(n, l){ return 'Yana ' + n + ' ta ko‘rsatish (' + l + ' ta qoldi)'; },
     },
@@ -384,7 +398,7 @@
       klass: 'Class', chamfer: 'Bevel', length: 'Length', width: 'Width', planks: 'Planks per pack',
       perPack: 'Per pack', perPallet: 'Per pallet',
       yes: 'yes', no: 'no', packs: 'packs', specs: 'Specifications',
-      close: 'tap to close', back: 'Categories',
+      close: 'tap the background to close', back: 'Categories',
       themeAuto: 'Theme: system', themeLight: 'Theme: light', themeDark: 'Theme: dark',
       more: function(n, l){ return 'Show ' + n + ' more of ' + l; },
     },
@@ -526,8 +540,10 @@
     if (s.th) r.push([T().thickness, s.th + " мм"]);
     if (s.cl) r.push([T().klass, s.cl]);
     if (s.ch !== undefined) r.push([T().chamfer, s.ch ? T().yes : T().no]);
-    if (s.ln) r.push([T().length, fmt(s.ln) + " мм"]);
-    if (s.wd) r.push([T().width, fmt(s.wd) + " мм"]);
+    // Длина и ширина одной строкой: «1292 × 246 мм» вместо двух рядов
+    if (s.ln && s.wd)  r.push([T().plank, fmt(s.ln) + " × " + fmt(s.wd) + " мм"]);
+    else if (s.ln)     r.push([T().length, fmt(s.ln) + " мм"]);
+    else if (s.wd)     r.push([T().width, fmt(s.wd) + " мм"]);
     if (s.pn) r.push([T().planks, s.pn]);
     if (s.pk) r.push([T().perPack, fmt(s.pk) + " " + T().m2]);
     if (s.pd) {
@@ -762,9 +778,12 @@
     var s = ev.target.closest('.shot');
     if (s) { ev.preventDefault(); openView(s); }
   });
-  view.addEventListener('click', function(){ view.classList.remove('on'); });
+  // Лист прокручивается, поэтому закрывает только фон или крестик — не тап по таблице
+  function closeView(){ view.classList.remove("on"); }
+  view.addEventListener("click", function(ev){ if (ev.target === view) closeView(); });
+  document.getElementById("vclose").addEventListener("click", closeView);
   document.addEventListener('keydown', function(ev){
-    if (ev.key === 'Escape') view.classList.remove('on');
+    if (ev.key === 'Escape') closeView();
   });
 
   // ═══════════ Язык ═══════════
