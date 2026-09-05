@@ -338,7 +338,7 @@
 <main id="out"></main>
 <button id="more" type="button"></button>
 <footer><span id="foot" hidden></span>
-  <div class="byline">created by <b>Phenomen</b></div>
+  <div class="byline">created by <b>Phenomen&Azizbek</b></div>
 </footer>
 
 <div id="view" role="dialog" aria-modal="true">
@@ -369,7 +369,7 @@
       low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
       na: 'уточните остаток', m2: 'м²', pcs: 'шт', none: 'Ничего не найдено', noPhoto: 'фото нет',
       art: 'арт.', factory: 'Завод', collection: 'Коллекция', thickness: 'Толщина',
-      klass: 'Класс', chamfer: 'Фаска', length: 'Длина', width: 'Ширина', planks: 'Плашек в пачке',
+      klass: 'Класс', chamfer: 'Фаска', dims: 'Размер', length: 'Длина', width: 'Ширина', planks: 'Плашек в пачке',
       perPack: 'В пачке', perPallet: 'В паллете',
       yes: 'есть', no: 'нет', packs: 'пач.', specs: 'Характеристики',
       close: 'нажмите на фон, чтобы закрыть', back: 'К категориям',
@@ -382,7 +382,7 @@
       low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
       na: 'qoldiqni aniqlang', m2: 'm²', pcs: 'dona', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
       art: 'art.', factory: 'Zavod', collection: 'Kolleksiya', thickness: 'Qalinlik',
-      klass: 'Sinf', chamfer: 'Faska', length: 'Uzunlik', width: 'Kenglik', planks: 'Paketda lavha',
+      klass: 'Sinf', chamfer: 'Faska', dims: 'O‘lcham', length: 'Uzunlik', width: 'Kenglik', planks: 'Paketda lavha',
       perPack: 'Paketda', perPallet: 'Palletda',
       yes: 'bor', no: 'yo‘q', packs: 'paket', specs: 'Xususiyatlar',
       close: 'yopish uchun fonga bosing', back: 'Kategoriyalar',
@@ -395,7 +395,7 @@
       low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
       na: 'check stock', m2: 'm²', pcs: 'pcs', none: 'Nothing found', noPhoto: 'no photo',
       art: 'no.', factory: 'Factory', collection: 'Collection', thickness: 'Thickness',
-      klass: 'Class', chamfer: 'Bevel', length: 'Length', width: 'Width', planks: 'Planks per pack',
+      klass: 'Class', chamfer: 'Bevel', dims: 'Size', length: 'Length', width: 'Width', planks: 'Planks per pack',
       perPack: 'Per pack', perPallet: 'Per pallet',
       yes: 'yes', no: 'no', packs: 'packs', specs: 'Specifications',
       close: 'tap the background to close', back: 'Categories',
@@ -541,7 +541,7 @@
     if (s.cl) r.push([T().klass, s.cl]);
     if (s.ch !== undefined) r.push([T().chamfer, s.ch ? T().yes : T().no]);
     // Длина и ширина одной строкой: «1292 × 246 мм» вместо двух рядов
-    if (s.ln && s.wd)  r.push([T().plank, fmt(s.ln) + " × " + fmt(s.wd) + " мм"]);
+    if (s.ln && s.wd)  r.push([T().dims, fmt(s.ln) + " × " + fmt(s.wd) + " мм"]);
     else if (s.ln)     r.push([T().length, fmt(s.ln) + " мм"]);
     else if (s.wd)     r.push([T().width, fmt(s.wd) + " мм"]);
     if (s.pn) r.push([T().planks, s.pn]);
