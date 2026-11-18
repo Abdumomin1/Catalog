@@ -339,8 +339,8 @@
     <div class="chips" id="factories"></div>
     <div class="chips spec" id="specs"></div>
     <div class="chips" id="modes">
-      <button class="chip" data-mode="all" aria-pressed="true">Все</button>
-      <button class="chip" data-mode="in"  aria-pressed="false" data-onlyout>В наличии</button>
+      <button class="chip" data-mode="all" aria-pressed="false">Все</button>
+      <button class="chip" data-mode="in"  aria-pressed="true" data-onlyout>В наличии</button>
       <button class="chip" data-mode="low" aria-pressed="false">Мало</button>
     </div>
   </div>
@@ -372,7 +372,7 @@
   var DATA = [], NUMBERS = false, MINSTOCK = 1, BATCH = 24, HIDEOUT = false;
   var OUTLABEL = 'нет в наличии';
   var FOOTNOTE = '';                      // строка внизу; приходит из настроек
-  var state = { cat: null, f: 'all', p: 'all', mode: 'all', q: '' };
+  var state = { cat: null, f: 'all', p: 'all', mode: 'in', q: '' };
 
   // ─────────── Языки ───────────
   var I18N = {
@@ -541,7 +541,7 @@
   ftog.addEventListener('click', function(){ setFilters(panel.hidden); });
 
   function updateCount(){
-    var n = (state.f !== 'all') + (state.p !== 'all') + (state.mode !== 'all');
+    var n = (state.f !== 'all') + (state.p !== 'all') + (state.mode !== 'in');
     var el = document.getElementById('fcount');
     el.textContent = n || '';
     el.classList.toggle('on', n > 0);
@@ -651,7 +651,7 @@
     return inCat().filter(function(it){
       if (state.f !== 'all' && it.f !== state.f) return false;
       if (state.p !== 'all' && it.p !== state.p) return false;
-      if (state.mode === 'in'  && !inStock(it)) return false;
+      if (state.mode === 'in' && !state.q && it.q !== null && !isNaN(it.q) && it.q < MINSTOCK) return false;  // «нет в наличии» видно по кнопке «Все» или при поиске
       if (state.mode === 'low' && !(inStock(it) && it.q < it.w)) return false;
       if (state.q) {
         var hay = it.d + ' ' + it.a + ' ' + it.c +
@@ -1007,10 +1007,10 @@
 
   function enterCat(c){
     state.cat = c;
-    state.f = 'all'; state.p = 'all'; state.mode = 'all'; state.q = '';
+    state.f = 'all'; state.p = 'all'; state.mode = 'in'; state.q = '';
     q.value = ''; clr.style.display = 'none';
     var m = document.getElementById('modes');
-    [].forEach.call(m.children, function(b){ b.setAttribute('aria-pressed', b.dataset.mode === 'all'); });
+    [].forEach.call(m.children, function(b){ b.setAttribute('aria-pressed', b.dataset.mode === 'in'); });
     chrome(false);
     render();
     try { scrollTo(0, 0); } catch (e) {}
