@@ -281,7 +281,7 @@
   #view.on{display:flex}
   /* Карточка во весь экран: фото занимает всё место над характеристиками, ничего на него не накладывается */
   .vcard{position:relative;display:flex;flex-direction:column;flex:1 1 auto;width:100%;max-width:520px;height:100%;background:#171411}
-  .vcard img{display:block;flex:1 1 auto;min-height:0;width:100%;object-fit:cover;object-position:center}
+  .vcard img{display:block;flex:1 1 auto;min-height:0;width:100%;object-fit:contain;object-position:center}
   .vcard.noimg img{display:none}
   .vover{
     flex:0 0 auto;max-height:62%;overflow-y:auto;
@@ -299,6 +299,11 @@
   .vsz{background:rgba(255,255,255,.16);color:#f2ede6;padding:3px 8px;border-radius:6px;
        font-size:12px;font-variant-numeric:tabular-nums}
   .vsz.z{opacity:.5;text-decoration:line-through}
+  /* Двери: размеры таблицей — столбец на высоту (2000, 2200, 2300, 2400), строка на ширину */
+  .vsizes.grid{display:grid;grid-template-columns:repeat(var(--hc),minmax(0,1fr));gap:5px}
+  .vsizes.grid .vh{color:#b3a898;font-size:9.5px;letter-spacing:.05em;text-align:center}
+  .vsizes.grid .vsz{text-align:center;padding:3px 4px;line-height:1.25}
+  .vsizes.grid .vsz.e{background:none}
   /* Характеристики — сетка в два столбца: подпись мелко сверху, значение под ней */
   .vspec{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px}
   .vs{min-width:0;line-height:1.2}
@@ -752,6 +757,41 @@
 
   // ═══════════ Просмотр фото ═══════════
   var view = document.getElementById('view');
+  // Размеры «800», «800×2200», «800 (40 мм)». Если высот больше одной — таблица:
+  // столбец на высоту (стандартная 2000 первой), строка на ширину. Иначе — строкой, как раньше.
+  function sizesHtml(it){
+    var vs = document.getElementById('viewSizes');
+    function cell(label, q){
+      var txt = label + ' — ' + (q === null ? '?' : fmt(q)) + ' ' + unitOf(it);
+      var z   = q !== null && q < MINSTOCK;
+      return '<span class="vsz' + (z ? ' z' : '') + '">' + esc(txt) + '</span>';
+    }
+    var rows = {}, wOrder = [], hs = {}, ok = true;
+    it.v.forEach(function(p){
+      var m = String(p[0]).match(/^(\d+)(?:\s*[×x]\s*(\d+))?(.*)$/);
+      if (!m) { ok = false; return; }
+      var h = m[2] || '2000', w = m[1] + m[3];
+      hs[h] = 1;
+      if (!rows[w]) { rows[w] = {}; wOrder.push(w); }
+      rows[w][h] = p[1];
+    });
+    var hl = Object.keys(hs).sort(function(a, b){ return a - b; });
+    if (!ok || hl.length < 2) {
+      vs.classList.remove('grid');
+      return it.v.map(function(p){ return cell(p[0], p[1]); }).join('');
+    }
+    wOrder.sort(function(a, b){ return (parseFloat(a) || 0) - (parseFloat(b) || 0); });
+    vs.classList.add('grid');
+    vs.style.setProperty('--hc', hl.length);
+    var html = hl.map(function(h){ return '<span class="vh">' + esc(h) + '</span>'; }).join('');
+    wOrder.forEach(function(w){
+      hl.forEach(function(h){
+        html += (h in rows[w]) ? cell(w, rows[w][h]) : '<span class="vsz e"></span>';
+      });
+    });
+    return html;
+  }
+
   function openView(el){
     var it = REG[+el.dataset.vi];
     if (!it) return;
@@ -773,12 +813,7 @@
 
     var vs = document.getElementById('viewSizes');
     if (it.v && it.v.length) {
-      vs.innerHTML = it.v.map(function(p){
-        var q   = p[1];
-        var txt = p[0] + ' — ' + (q === null ? '?' : fmt(q)) + ' ' + unitOf(it);
-        var z   = q !== null && q < MINSTOCK;
-        return '<span class="vsz' + (z ? ' z' : '') + '">' + esc(txt) + '</span>';
-      }).join('');
+      vs.innerHTML = sizesHtml(it);
       vs.style.display = '';
     } else {
       vs.innerHTML = '';
