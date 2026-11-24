@@ -37,6 +37,15 @@ COLL = {'Классико': 'Классико', 'Неоклассико': 'Не�
 FACT = {'Portika / Двери Мебель': 'Portika', 'Задор/Дельта': 'Задор'}
 PFX = r'^(Дверное полотно\s+)?(Zadoor SENSE|LEGNO|Classic Baguette|Art-Lite|Zadoor-S Classic|Filomuro)?\s*'
 
+def unify(m):
+    """Одна дверь в 1С пишется по-разному: Topan/Toppan, B3/В3/«В 1», тёмный/темный, «А К»/«АК 2».
+    Приводим к одному написанию, чтобы все размеры модели попали в одну карточку и к одному фото."""
+    m = m.replace('ё', 'е').replace('Ё', 'Е')
+    m = re.sub(r'\bTopan\b', 'Toppan', m)
+    m = re.sub(r'(?<![A-Za-zА-Яа-я])[BВ]\s?(\d)', r'В\1', m)
+    m = re.sub(r'\bА К\b', 'АК', m).replace('АК 2', 'АК2')
+    return re.sub(r'\s+', ' ', m).strip()
+
 rows, seen = [], set()
 for x in get('Catalog_Номенклатура', 'Ref_Key,Description,DeletionMark,ВидНоменклатуры_Key'):
     v = path(x['ВидНоменклатуры_Key'])
@@ -44,7 +53,7 @@ for x in get('Catalog_Номенклатура', 'Ref_Key,Description,DeletionMa
     f = FACT.get(v[1])
     if not f or v[3] not in COLL or 'Филенки' in v: continue
     s = re.sub(r'\s+', ' ', x['Description']).strip()
-    if s.lower() in seen: continue
+    if s.lower() in seen or s.lower().startswith('образец'): continue
     seen.add(s.lower())
     m = re.search(r'(\d{2})\s*[хx*]\s*(\d{3,4})\s*[хx*]\s*(\d{4})', s)          # 35х800х2000
     if m: t, w, h = m.groups()
@@ -54,12 +63,15 @@ for x in get('Catalog_Номенклатура', 'Ref_Key,Description,DeletionMa
         h, w, t = m.groups()
     model = re.sub(PFX, '', (s[:m.start()] + ' ' + s[m.end():]).strip())
     model = re.sub(r'\s+', ' ', re.sub(r'[()]', ' ', model)).strip(' ,')
+    model = unify(model)
     rows.append([f, 'шт', COLL[v[3]], model, w if h == '2000' else f'{w}×{h}', x['Description'].strip(), 5, t])
 
-c = collections.Counter((r[2], r[3], r[4]) for r in rows)
+c = collections.Counter((r[2], r[3].lower(), r[4]) for r in rows)
 for r in rows:
-    if c[(r[2], r[3], r[4])] > 1 and r[7]: r[4] += f' ({r[7]} мм)'
+    if c[(r[2], r[3].lower(), r[4])] > 1 and r[7]: r[4] += f' ({r[7]} мм)'
     del r[7]
-rows.sort(key=lambda r: (r[0] != 'Portika', r[2], r[3], int(re.match(r'\d+', r[4]).group()), r[4]))
+first = {}                                    # одно написание модели на всю карточку
+for r in rows: r[3] = first.setdefault((r[2], r[3].lower()), r[3])
+rows.sort(key=lambda r: (r[0] != 'Portika', r[2], r[3].lower(), int(re.match(r'\d+', r[4]).group()), r[4]))
 csv.writer(open(sys.argv[1], 'w', newline='')).writerows(rows)
 print(len(rows), 'строк,', len({(r[0], r[2], r[3]) for r in rows}), 'карточек')
