@@ -343,6 +343,7 @@
   <div id="filters" hidden>
     <div class="chips" id="factories"></div>
     <div class="chips spec" id="specs"></div>
+    <div class="chips" id="colls"></div>
     <div class="chips" id="modes">
       <button class="chip" data-mode="all" aria-pressed="false">Все</button>
       <button class="chip" data-mode="in"  aria-pressed="true" data-onlyout>В наличии</button>
@@ -377,13 +378,13 @@
   var DATA = [], NUMBERS = false, MINSTOCK = 1, BATCH = 24, HIDEOUT = false;
   var OUTLABEL = 'нет в наличии';
   var FOOTNOTE = '';                      // строка внизу; приходит из настроек
-  var state = { cat: null, f: 'all', p: 'all', mode: 'in', q: '' };
+  var state = { cat: null, f: 'all', p: 'all', c: 'all', mode: 'in', q: '' };
 
   // ─────────── Языки ───────────
   var I18N = {
     ru: {
       catalog: 'Каталог', search: 'Декор или артикул', filters: 'Фильтры',
-      allF: 'Все заводы', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
+      allF: 'Все заводы', allC: 'Все коллекции', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
       low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
       na: 'уточните остаток', m2: 'м²', pcs: 'шт', none: 'Ничего не найдено', noPhoto: 'фото нет',
       art: 'арт.', factory: 'Завод', collection: 'Коллекция', thickness: 'Толщина',
@@ -396,7 +397,7 @@
     },
     uz: {
       catalog: 'Katalog', search: 'Dekor yoki artikul', filters: 'Filtrlar',
-      allF: 'Barcha zavodlar', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
+      allF: 'Barcha zavodlar', allC: 'Barcha kolleksiyalar', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
       low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
       na: 'qoldiqni aniqlang', m2: 'm²', pcs: 'dona', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
       art: 'art.', factory: 'Zavod', collection: 'Kolleksiya', thickness: 'Qalinlik',
@@ -409,7 +410,7 @@
     },
     en: {
       catalog: 'Catalog', search: 'Decor or item no.', filters: 'Filters',
-      allF: 'All factories', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
+      allF: 'All factories', allC: 'All collections', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
       low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
       na: 'check stock', m2: 'm²', pcs: 'pcs', none: 'Nothing found', noPhoto: 'no photo',
       art: 'no.', factory: 'Factory', collection: 'Collection', thickness: 'Thickness',
@@ -546,7 +547,7 @@
   ftog.addEventListener('click', function(){ setFilters(panel.hidden); });
 
   function updateCount(){
-    var n = (state.f !== 'all') + (state.p !== 'all') + (state.mode !== 'in');
+    var n = (state.f !== 'all') + (state.p !== 'all') + (state.c !== 'all') + (state.mode !== 'in');
     var el = document.getElementById('fcount');
     el.textContent = n || '';
     el.classList.toggle('on', n > 0);
@@ -601,7 +602,7 @@
   }
 
   function chipRow(el, values, field, allLabel){
-    if (values.length < 2) { el.classList.add('hide'); return; }
+    if (values.length < 2) { state[field] = 'all'; el.classList.add('hide'); return; }
     el.classList.remove('hide');
 
     var cur = state[field];
@@ -625,7 +626,9 @@
 
   var elF = document.getElementById('factories');
   var elP = document.getElementById('specs');
+  var elC = document.getElementById('colls');
   bindRow(elF, 'f');
+  bindRow(elC, 'c');
   bindRow(elP, 'p');
 
   document.getElementById('modes').addEventListener('click', function(ev){
@@ -656,6 +659,7 @@
     return inCat().filter(function(it){
       if (state.f !== 'all' && it.f !== state.f) return false;
       if (state.p !== 'all' && it.p !== state.p) return false;
+      if (state.c !== 'all' && it.c !== state.c) return false;
       if (state.mode === 'in' && !state.q && it.q !== null && !isNaN(it.q) && it.q < MINSTOCK) return false;  // «нет в наличии» видно по кнопке «Все» или при поиске
       if (state.mode === 'low' && !(inStock(it) && it.q < it.w)) return false;
       if (state.q) {
@@ -697,6 +701,12 @@
     chipRow(elF, uniq(cat, 'f'), 'f', T().allF);
     var byFactory = cat.filter(function(it){ return state.f === 'all' || it.f === state.f; });
     chipRow(elP, uniq(byFactory, 'p'), 'p', T().any);
+    // Коллекции — только когда выбран один завод: иначе список слишком длинный.
+    // Где коллекции нет (вместо неё подставлена толщина или категория), ряд не нужен.
+    var byP = byFactory.filter(function(it){ return state.p === 'all' || it.p === state.p; })
+                       .filter(function(it){ return it.c && it.c !== it.p && it.c !== it.k; });
+    if (state.f === 'all') { state.c = 'all'; elC.classList.add('hide'); }
+    else chipRow(elC, uniq(byP, 'c'), 'c', T().allC);
     updateCount();
 
     var all = selected();
@@ -1042,7 +1052,7 @@
 
   function enterCat(c){
     state.cat = c;
-    state.f = 'all'; state.p = 'all'; state.mode = 'in'; state.q = '';
+    state.f = 'all'; state.p = 'all'; state.c = 'all'; state.mode = 'in'; state.q = '';
     q.value = ''; clr.style.display = 'none';
     var m = document.getElementById('modes');
     [].forEach.call(m.children, function(b){ b.setAttribute('aria-pressed', b.dataset.mode === 'in'); });
