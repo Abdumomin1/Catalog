@@ -214,6 +214,21 @@
   }
   .shot{position:relative;aspect-ratio:3/4;background:var(--surface-2);cursor:zoom-in}
   .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  /* несколько фото у товара — значок в углу карточки */
+  .multi{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:10px;
+         padding:2px 7px;font-size:11px;line-height:16px;font-variant-numeric:tabular-nums;pointer-events:none}
+  /* листание фото в открытой карточке */
+  .vgal{position:relative;flex:1 1 auto;min-height:0;display:flex;touch-action:pan-y}
+  .vgal img{flex:1 1 auto;min-height:0}
+  .vnav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:50%;
+        background:rgba(0,0,0,.38);color:#fff;font:22px/38px inherit;cursor:pointer;padding:0;display:none}
+  .vnav.l{left:8px} .vnav.r{right:8px}
+  .vgal.many .vnav{display:block}
+  .vdots{position:absolute;left:0;right:0;bottom:8px;display:none;justify-content:center;gap:6px;pointer-events:none}
+  .vgal.many .vdots{display:flex}
+  .vcard.noimg .vgal{display:none}
+  .vdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45)}
+  .vdots i.on{background:#fff}
   .shot .blank{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     color:var(--muted);font-family:Oswald,sans-serif;font-size:11px;
@@ -361,7 +376,12 @@
 <div id="view" role="dialog" aria-modal="true">
   <button id="vclose" type="button" aria-label="Закрыть">&times;</button>
   <div id="vcard" class="vcard">
-    <img id="viewImg" alt="">
+    <div class="vgal" id="vgal">
+      <img id="viewImg" alt="">
+      <button class="vnav l" id="vprev" type="button" aria-label="Предыдущее фото">&#8249;</button>
+      <button class="vnav r" id="vnext" type="button" aria-label="Следующее фото">&#8250;</button>
+      <div class="vdots" id="vdots"></div>
+    </div>
     <div class="vover">
       <p id="viewTxt"></p>
       <div id="viewSizes" class="vsizes"></div>
@@ -681,6 +701,7 @@
          +   '<div class="shot" data-vi="' + (REG.length - 1) + '" tabindex="0">'
          +     (it.i
                  ? '<img src="' + esc(imgUrl(it.i)) + '" alt="' + esc(it.d) + '" loading="lazy" decoding="async">'
+                   + (it.g && it.g.length ? '<span class="multi">' + (it.g.length + 1) + ' фото</span>' : '')
                  : '<div class="blank">' + esc(T().noPhoto) + '</div>')
          +   '</div>'
          +   '<div class="info">'
@@ -802,14 +823,45 @@
     return html;
   }
 
+  // ───── листание фото: стрелки, свайп, точки. Одно фото — ничего этого нет ─────
+  var GAL = [], GI = 0;
+  var vgal = document.getElementById('vgal');
+  function showPhoto(){
+    var im = document.getElementById('viewImg');
+    im.src = imgUrl(GAL[GI], true);
+    [].forEach.call(document.getElementById('vdots').children, function(d, i){ d.classList.toggle('on', i === GI); });
+    // следующее фото подгружаем заранее, чтобы листалось без задержки
+    if (GAL.length > 1) { var pre = new Image(); pre.src = imgUrl(GAL[(GI + 1) % GAL.length], true); }
+  }
+  function step(d){
+    if (GAL.length < 2) return;
+    GI = (GI + d + GAL.length) % GAL.length;
+    showPhoto();
+  }
+  document.getElementById('vprev').addEventListener('click', function(ev){ ev.stopPropagation(); step(-1); });
+  document.getElementById('vnext').addEventListener('click', function(ev){ ev.stopPropagation(); step(1); });
+  var tx = null, ty = null;
+  vgal.addEventListener('touchstart', function(ev){ var t = ev.touches[0]; tx = t.clientX; ty = t.clientY; }, {passive:true});
+  vgal.addEventListener('touchend', function(ev){
+    if (tx === null) return;
+    var t = ev.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    tx = ty = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
+  }, {passive:true});
+
   function openView(el){
     var it = REG[+el.dataset.vi];
     if (!it) return;
 
     var im = document.getElementById('viewImg');
     var card = document.getElementById('vcard');
-    if (it.i) { im.src = imgUrl(it.i, true); card.classList.remove('noimg'); }
+    GAL = it.i ? [it.i].concat(it.g || []) : [];
+    GI = 0;
+    if (it.i) { showPhoto(); card.classList.remove('noimg'); }
     else      { im.removeAttribute('src'); card.classList.add('noimg'); }
+    vgal.classList.toggle('many', GAL.length > 1);
+    document.getElementById('vdots').innerHTML = GAL.length > 1 ? GAL.map(function(){ return '<i></i>'; }).join('') : '';
+    if (GAL.length > 1) showPhoto();
     document.getElementById('viewTxt').textContent =
       it.d + (it.a ? ' · ' + T().art + ' ' + it.a : '');
 
@@ -846,6 +898,8 @@
   document.getElementById("vclose").addEventListener("click", closeView);
   document.addEventListener('keydown', function(ev){
     if (ev.key === 'Escape') closeView();
+    if (view.classList.contains('on') && ev.key === 'ArrowRight') step(1);
+    if (view.classList.contains('on') && ev.key === 'ArrowLeft') step(-1);
   });
 
   // ═══════════ Язык ═══════════

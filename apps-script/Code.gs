@@ -476,13 +476,30 @@ function buildCatalog_() {
                     imgs[norm_(x.decor)] ||
                     imgs[looseKey_(x.decor)] || '';
 
+    // Ещё фото для листания: те же имена с « 2», « 3»… Порядок — по номеру.
+    let gal = null;
+    [norm_(x.nom), looseKey_(x.nom), norm_(x.coll + ' ' + x.decor), looseKey_(x.coll + ' ' + x.decor),
+     norm_(x.decor), looseKey_(x.decor)].some(function (k) {
+      if (k && imgs['+' + k]) { gal = imgs['+' + k]; return true; }
+      return false;
+    });
+    if (!gal) list.some(function (v) {
+      const k = norm_(v.nom), l = looseKey_(v.nom);
+      gal = imgs['+' + k] || imgs['+' + l] || null;
+      return !!gal;
+    });
+    const more = gal ? gal.slice().sort(function (a, b) { return a[0] - b[0]; })
+                          .map(function (p) { return p[1]; })
+                          .filter(function (id) { return id !== img; }) : [];
+
     // Нулевые остатки не отдаём в каталог совсем — меньше данных и меньше карточек.
     // Позиции, которых нет в 1С, остаются видимыми: иначе ошибка в номенклатуре
     // молча прятала бы товар.
     if (o.hideOut && total !== null && total < o.minStock) return;
 
     variants.sort(function (a, b) {
-      return (parseFloat(a[0]) || 0) - (parseFloat(b[0]) || 0);
+      return (parseFloat(a[0]) || 0) - (parseFloat(b[0]) || 0) ||
+             String(a[0]).localeCompare(String(b[0]), 'ru');      // «А» раньше «Б»
     });
 
     const item = {
@@ -497,6 +514,7 @@ function buildCatalog_() {
       u: x.unit || (variants.length ? 'шт' : ''),
       i: img || '',
     };
+    if (img && more.length) item.g = more.slice(0, 5);   // листание: максимум 6 фото на товар
     // ── характеристики ──
     // Толщина, класс и фаска запасным путём берутся из «Толщины и класса»;
     // явно заполненные колонки всегда сильнее.
@@ -586,6 +604,18 @@ function scanFolder_(folder, map, depth) {
 
     const dig = artDigits_(base);                  // и по цифрам артикула из имени
     if (dig && !(dig in map)) map[dig] = id;
+
+    // Дополнительные фото для листания: «Номенклатура 2.jpg», «… (3).jpg», «…_2.jpg».
+    // Файл остаётся доступен и по полному имени — на случай, если номенклатура сама кончается цифрой.
+    const ex = base.match(/^(.+?)\s*(?:\(([2-9])\)|[\s_]+([2-9]))$/);
+    if (ex) {
+      const n = Number(ex[2] || ex[3]);
+      [norm_(ex[1]), looseKey_(ex[1])].forEach(function (k) {
+        if (!k) return;
+        const list = map['+' + k] || (map['+' + k] = []);
+        if (!list.some(function (p) { return p[1] === id; })) list.push([n, id]);
+      });
+    }
   }
 
   const subs = folder.getFolders();
