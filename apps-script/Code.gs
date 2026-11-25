@@ -261,6 +261,8 @@ const COLS = {
   coll:    ['коллекция'],
   art:     ['артикул'],
   decor:   ['декор', 'название декора', 'модель'],
+  color:   ['цвет'],
+  dtype:   ['тип декора'],
   low:     ['порог', 'порог остатка'],
   size:    ['размер'],
   unit:    ['ед', 'ед.', 'единица', 'ед. изм.', 'ед изм'],
@@ -362,7 +364,11 @@ function buildCatalog_() {
     const rows = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
 
     function cell(r, key) {
-      return cols[key] < 0 ? '' : String(r[cols[key]]).trim();
+      if (cols[key] < 0) return '';
+      const v = r[cols[key]];
+      // «7/31» Таблица сама превращает в дату 31 июля — возвращаем как было
+      if (v instanceof Date) return (v.getMonth() + 1) + '/' + v.getDate();
+      return String(v).trim();
     }
 
     // Единица измерения задаётся один раз на лист: первое непустое значение
@@ -414,6 +420,8 @@ function buildCatalog_() {
         art:   art,
         dig:   artDigits_(art),
         decor: cell(r, 'decor') || decorFrom_(nom, art, coll, size),
+        color: cell(r, 'color'),
+        dtype: cell(r, 'dtype'),
         f:     cell(r, 'factory') || '—',
         p:     cell(r, 'spec'),
         w:     Number(cell(r, 'low')) || o.low,
@@ -514,6 +522,8 @@ function buildCatalog_() {
       u: x.unit || (variants.length ? 'шт' : ''),
       i: img || '',
     };
+    if (x.color) item.o = x.color;      // фильтр «Цвет»
+    if (x.dtype) item.t = x.dtype;      // фильтр «Тип декора»
     if (img && more.length) item.g = more.slice(0, 5);   // листание: максимум 6 фото на товар
     // ── характеристики ──
     // Толщина, класс и фаска запасным путём берутся из «Толщины и класса»;
