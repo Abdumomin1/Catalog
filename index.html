@@ -172,6 +172,23 @@
   .fbtn .cnt.on{display:inline-block}
 
   #filters[hidden]{display:none}
+  /* Четыре главные кнопки в одну строку; варианты — лентой под ними, листаются пальцем */
+  .pickers{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
+  .pickers::-webkit-scrollbar,.opts::-webkit-scrollbar{display:none}
+  .pick{
+    flex:0 0 auto;display:flex;align-items:center;gap:5px;max-width:62vw;
+    padding:7px 11px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  }
+  .pick span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pick.set{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .pick[aria-expanded="true"]{border-color:var(--accent);color:var(--ink)}
+  .pick svg{flex:0 0 auto;transition:transform .18s}
+  .pick[aria-expanded="true"] svg{transform:rotate(180deg)}
+  .opts{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;
+        margin-top:8px;padding:8px;border-radius:12px;background:var(--surface-2)}
+  .opts[hidden]{display:none}
+  .opts .chip{scroll-snap-align:start}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .chips.hide{display:none}
   .chips#modes{border-top:1px solid var(--line);padding-top:8px}
@@ -356,10 +373,9 @@
   </div>
 
   <div id="filters" hidden>
-    <div class="chips" id="factories"></div>
-    <div class="chips spec" id="specs"></div>
-    <div class="chips" id="colls"></div>
-    <div class="chips" id="colors"></div>
+    <div class="pickers" id="pickers"></div>
+    <div class="opts" id="opts" hidden></div>
+    <div class="opts" id="opts2" hidden></div>
     <div class="chips" id="modes">
       <button class="chip" data-mode="all" aria-pressed="false">Все</button>
       <button class="chip" data-mode="in"  aria-pressed="true" data-onlyout>В наличии</button>
@@ -399,13 +415,14 @@
   var DATA = [], NUMBERS = false, MINSTOCK = 1, BATCH = 24, HIDEOUT = false;
   var OUTLABEL = 'нет в наличии';
   var FOOTNOTE = '';                      // строка внизу; приходит из настроек
-  var state = { cat: null, f: 'all', p: 'all', c: 'all', o: 'all', mode: 'in', q: '' };
+  var state = { cat: null, f: 'all', p: 'all', c: 'all', o: 'all', t: 'all', mode: 'in', q: '' };
+  var openPick = null;                    // какая из четырёх кнопок раскрыта
 
   // ─────────── Языки ───────────
   var I18N = {
     ru: {
       catalog: 'Каталог', search: 'Декор или артикул', filters: 'Фильтры',
-      allF: 'Все заводы', allC: 'Все коллекции', allO: 'Любой цвет', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
+      allF: 'Все заводы', allC: 'Все коллекции', allO: 'Любой цвет', allT: 'Любой декор', fF: 'Завод', fP: 'Толщина', fT: 'Декор', fO: 'Цвет', any: 'Любая', all: 'Все', instock: 'В наличии', lowF: 'Мало',
       low: 'мало', inst: 'в наличии', out: 'нет в наличии', order: 'под заказ',
       na: 'уточните остаток', m2: 'м²', pcs: 'шт', none: 'Ничего не найдено', noPhoto: 'фото нет',
       art: 'арт.', factory: 'Завод', collection: 'Коллекция', thickness: 'Толщина',
@@ -418,7 +435,7 @@
     },
     uz: {
       catalog: 'Katalog', search: 'Dekor yoki artikul', filters: 'Filtrlar',
-      allF: 'Barcha zavodlar', allC: 'Barcha kolleksiyalar', allO: 'Istalgan rang', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
+      allF: 'Barcha zavodlar', allC: 'Barcha kolleksiyalar', allO: 'Istalgan rang', allT: 'Istalgan dekor', fF: 'Zavod', fP: 'Qalinlik', fT: 'Dekor', fO: 'Rang', any: 'Istalgani', all: 'Barchasi', instock: 'Mavjud', lowF: 'Kam',
       low: 'kam', inst: 'mavjud', out: 'mavjud emas', order: 'buyurtma asosida',
       na: 'qoldiqni aniqlang', m2: 'm²', pcs: 'dona', none: 'Hech narsa topilmadi', noPhoto: 'foto yo‘q',
       art: 'art.', factory: 'Zavod', collection: 'Kolleksiya', thickness: 'Qalinlik',
@@ -431,7 +448,7 @@
     },
     en: {
       catalog: 'Catalog', search: 'Decor or item no.', filters: 'Filters',
-      allF: 'All factories', allC: 'All collections', allO: 'Any colour', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
+      allF: 'All factories', allC: 'All collections', allO: 'Any colour', allT: 'Any decor', fF: 'Factory', fP: 'Thickness', fT: 'Decor', fO: 'Colour', any: 'Any', all: 'All', instock: 'In stock', lowF: 'Low',
       low: 'low', inst: 'in stock', out: 'out of stock', order: 'on request',
       na: 'check stock', m2: 'm²', pcs: 'pcs', none: 'Nothing found', noPhoto: 'no photo',
       art: 'no.', factory: 'Factory', collection: 'Collection', thickness: 'Thickness',
@@ -568,7 +585,7 @@
   ftog.addEventListener('click', function(){ setFilters(panel.hidden); });
 
   function updateCount(){
-    var n = (state.f !== 'all') + (state.p !== 'all') + (state.c !== 'all') + (state.o !== 'all') + (state.mode !== 'in');
+    var n = (state.f !== 'all') + (state.p !== 'all') + (state.c !== 'all') + (state.o !== 'all') + (state.t !== 'all') + (state.mode !== 'in');
     var el = document.getElementById('fcount');
     el.textContent = n || '';
     el.classList.toggle('on', n > 0);
@@ -583,6 +600,17 @@
     if (/дуб/i.test(d))              return 'Под дуб';
     if (/алюмин|титан/i.test(d))     return 'Металл';
     return 'Цветной';
+  }
+
+  /** Тип декора. Колонка «Тип декора» сильнее; у ламината и SPC без неё — по названию. */
+  function typeOf(it){
+    if (it.t) return it.t;
+    if (!/ламинат|spc/i.test(it.k || '')) return '';
+    var d = it.d || '';
+    if (/дуб|oak/i.test(d)) return 'Дуб';
+    if (/бетон|мрамор|камен|сланец|травертин|плит|керам|гранит|оникс|stone|marble|concrete/i.test(d)) return 'Камень и плитка';
+    if (/орех|ясень|сосн|кл[её]н|бук|вишн|тик\b|акаци|каштан|груш|ольх|пихт|кедр|лиственн|берез|бамбук|ироко|мербау|венге|wood|walnut/i.test(d)) return 'Другое дерево';
+    return '';
   }
 
   /** «Fri Jul 31 2026 …» — так приходит «7/31», если Таблица сделала из него дату. */
@@ -663,14 +691,29 @@
     });
   }
 
-  var elF = document.getElementById('factories');
-  var elP = document.getElementById('specs');
-  var elC = document.getElementById('colls');
-  var elO = document.getElementById('colors');
-  bindRow(elO, 'o');
-  bindRow(elF, 'f');
-  bindRow(elC, 'c');
-  bindRow(elP, 'p');
+  var elPick = document.getElementById('pickers');
+  var elOpts = document.getElementById('opts');
+  var elOpts2 = document.getElementById('opts2');
+  var CARET = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+  elPick.addEventListener('click', function(ev){
+    var b = ev.target.closest('.pick'); if (!b) return;
+    openPick = openPick === b.dataset.k ? null : b.dataset.k;
+    render(false);
+  });
+  // Выбор варианта: у завода лента остаётся открытой — ниже появляются его коллекции
+  elOpts.addEventListener('click', function(ev){
+    var b = ev.target.closest('.chip'); if (!b) return;
+    state[openPick] = b.dataset.v;
+    if (openPick === 'f') state.c = 'all';
+    if (openPick !== 'f' || b.dataset.v === 'all') openPick = null;
+    render();
+  });
+  elOpts2.addEventListener('click', function(ev){
+    var b = ev.target.closest('.chip'); if (!b) return;
+    state.c = b.dataset.v; openPick = null;
+    render();
+  });
 
   document.getElementById('modes').addEventListener('click', function(ev){
     var b = ev.target.closest('.chip'); if (!b) return;
@@ -702,6 +745,7 @@
       if (state.p !== 'all' && it.p !== state.p) return false;
       if (state.c !== 'all' && it.c !== state.c) return false;
       if (state.o !== 'all' && colorOf(it) !== state.o) return false;
+      if (state.t !== 'all' && typeOf(it) !== state.t) return false;
       if (state.mode === 'in' && !state.q && it.q !== null && !isNaN(it.q) && it.q < MINSTOCK) return false;  // «нет в наличии» видно по кнопке «Все» или при поиске
       if (state.mode === 'low' && !(inStock(it) && it.q < it.w)) return false;
       if (state.q) {
@@ -741,18 +785,34 @@
     REG.length = 0;
 
     var cat = inCat();
-    chipRow(elF, uniq(cat, 'f'), 'f', T().allF);
-    var byFactory = cat.filter(function(it){ return state.f === 'all' || it.f === state.f; });
-    chipRow(elP, uniq(byFactory, 'p'), 'p', T().any);
-    // Коллекции — только когда выбран один завод: иначе список слишком длинный.
-    // Где коллекции нет (вместо неё подставлена толщина или категория), ряд не нужен.
-    var byP = byFactory.filter(function(it){ return state.p === 'all' || it.p === state.p; })
-                       .filter(function(it){ return it.c && it.c !== it.p && it.c !== it.k; });
-    if (state.f === 'all') { state.c = 'all'; elC.classList.add('hide'); }
-    else chipRow(elC, uniq(byP, 'c'), 'c', T().allC);
-    // Цвет: из колонки «Цвет» таблицы; у плинтусов — по названию. Нет данных — ряда нет.
-    var byC = byFactory.filter(function(it){ return (state.p === 'all' || it.p === state.p) && (state.c === 'all' || it.c === state.c); });
-    chipRow(elO, uniq(byC.map(function(it){ return { o: colorOf(it) }; }), 'o'), 'o', T().allO);
+    // Завод только сужает остальные три кнопки; они доступны и без выбора завода
+    var byF = cat.filter(function(it){ return state.f === 'all' || it.f === state.f; });
+    var colls = state.f === 'all' ? [] :
+      uniq(byF.filter(function(it){ return it.c && it.c !== it.p && it.c !== it.k; }), 'c');
+    var lists = {
+      f: uniq(cat, 'f'),
+      p: uniq(byF, 'p'),
+      t: uniq(byF.map(function(it){ return { v: typeOf(it) }; }), 'v'),
+      o: uniq(byF.map(function(it){ return { v: colorOf(it) }; }), 'v'),
+    };
+    var labels = { f: [T().fF, T().allF], p: [T().fP, T().any], t: [T().fT, T().allT], o: [T().fO, T().allO] };
+    if (colls.indexOf(state.c) < 0) state.c = 'all';
+    var html = '';
+    ['f', 'p', 't', 'o'].forEach(function(k){
+      var vals = lists[k];
+      if (state[k] !== 'all' && vals.indexOf(state[k]) < 0) state[k] = 'all';
+      if (vals.length < 2) { if (openPick === k) openPick = null; return; }   // выбирать не из чего — кнопки нет
+      var val = state[k] !== 'all' ? state[k] + (k === 'f' && state.c !== 'all' ? ' · ' + state.c : '') : labels[k][0];
+      html += '<button class="pick' + (state[k] !== 'all' ? ' set' : '') + '" data-k="' + k +
+              '" aria-expanded="' + (openPick === k) + '"><span>' + esc(val) + '</span>' + CARET + '</button>';
+    });
+    elPick.innerHTML = html;
+    elOpts.hidden = !openPick;
+    if (openPick) chipRow(elOpts, lists[openPick], openPick, labels[openPick][1]);
+    elOpts.classList.remove('hide');
+    elOpts2.hidden = !(openPick === 'f' && state.f !== 'all' && colls.length > 1);
+    if (!elOpts2.hidden) chipRow(elOpts2, colls, 'c', T().allC);
+    elOpts2.classList.remove('hide');
     updateCount();
 
     var all = selected();
@@ -1132,7 +1192,7 @@
 
   function enterCat(c){
     state.cat = c;
-    state.f = 'all'; state.p = 'all'; state.c = 'all'; state.o = 'all'; state.mode = 'in'; state.q = '';
+    state.f = 'all'; state.p = 'all'; state.c = 'all'; state.o = 'all'; state.t = 'all'; openPick = null; state.mode = 'in'; state.q = '';
     q.value = ''; clr.style.display = 'none';
     var m = document.getElementById('modes');
     [].forEach.call(m.children, function(b){ b.setAttribute('aria-pressed', b.dataset.mode === 'in'); });
