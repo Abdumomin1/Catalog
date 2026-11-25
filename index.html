@@ -606,11 +606,11 @@
   function typeOf(it){
     if (it.t) return it.t;
     if (!/ламинат|spc/i.test(it.k || '')) return '';
-    var d = it.d || '';
+    var d = (it.d || '') + ' ' + (it.c || '') + ' ' + (it.p || '');
+    if (/ёлк|елк|ёлоч|елоч|herringbone|херрингбон|caravan|chevron|шеврон|veritas|gusto|pruva/i.test(d)) return 'Ёлочка';
+    if (/мрамор|marble|бетон|камен|сланец|травертин|плит|керам|гранит|оникс|stone|concrete|mood/i.test(d)) return 'Камень и плитка';
     if (/дуб|oak/i.test(d)) return 'Дуб';
-    if (/бетон|мрамор|камен|сланец|травертин|плит|керам|гранит|оникс|stone|marble|concrete/i.test(d)) return 'Камень и плитка';
-    if (/орех|ясень|сосн|кл[её]н|бук|вишн|тик\b|акаци|каштан|груш|ольх|пихт|кедр|лиственн|берез|бамбук|ироко|мербау|венге|wood|walnut/i.test(d)) return 'Другое дерево';
-    return '';
+    return 'Дерево';
   }
 
   /** «Fri Jul 31 2026 …» — так приходит «7/31», если Таблица сделала из него дату. */
