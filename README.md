@@ -321,3 +321,15 @@ telegra.ph (1737 номенклатур, 1101 разная картинка). В
 - Официальные сайты цвета не дают: у Swiss Krono на странице коллекции только номер и название декора
   (например, «D7084 Амиата FS»), у Эггера на русском сайте — описания коллекций.
 - Сеть сессии: добавлены drive.google.com, drive.usercontent.google.com, lh3.googleusercontent.com, abdumomin1.github.io.
+
+## Сделано 25.11.2026 — фото Swiss Krono с официального сайта
+
+- Источник: swisskrono.ru/<коллекция>.html (Magister, Compliment, Grotesk, Mediator, Biom, Dovod, Eventum, Regista,
+  Synchropolis, Caspian, Fanat). Для каждого декора берутся «интерьер» (`NNNN_interior.jpg`) и «сборка»
+  (`NNNN_assembly.jpg`); узкая полоска `_board` не берётся — в просмотре она выглядит тонкой линией.
+- Сопоставление по номеру декора (артикул в колонке D). Один номер = один декор во всех коллекциях Swiss Krono,
+  поэтому Arto/RTK/RTS/Ecologik/часть Homestandart получили фото того же номера из другой коллекции сайта.
+- Если у товара уже было фото владельца — оно осталось первым, официальные легли как «… 2.jpg», «… 3.jpg».
+  Если фото не было — официальное стало главным. Всего загружено 145 файлов в папки коллекций «Свисс Кроно».
+- На swisskrono.ru и swisskrono.com нет коллекций Royalife, Woodroyal, части Homestandart и RTK, ET 7/32,
+  «ЛП 7мм 31кл» — у них фото не добавлялось (swisskrono.com закрыт Cloudflare для скриптов).
