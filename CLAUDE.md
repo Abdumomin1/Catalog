@@ -59,12 +59,17 @@
   Строки: Veritas 500–511, Opus 512–513, Gusto 514–541, Liberte 542–545. **Номера строк проверять чтением
   перед записью** — 25.11 запись съехала на 2 строки.
 - **Источники фото (только официальные):** jossbeaumont.ru, swisskrono.ru/<коллекция>.html (номер декора общий для
-  всех коллекций Swiss Krono), egger-russia.ru/products/flooring/decors/, solidgroup.ru; maff.uz — исключение
+  всех коллекций Swiss Krono), egger-russia.ru/products/flooring/decors/, solidgroup.ru, agt.com.tr; maff.uz — исключение
   владельца. Список — `SOURCES.md` в репозитории product-card-generator.
 - **Drive:** чужие (загруженные владельцем) файлы приложение не может переименовать или переместить —
   делать копию с правильным именем (`copy_file`). Своё — `create_file` с `sha256:<хэш>:<путь>`.
 - **Сеть сессии** (окружение «Web-site-for-B2B»): разрешены drive.google.com (миниатюры `thumbnail?id=&sz=w320`),
-  abdumomin1.github.io, swisskrono.ru, www.swisskrono.com, egger-russia.ru, jossbeaumont.ru, solidgroup.ru, maff.uz.
+  abdumomin1.github.io, swisskrono.ru, www.swisskrono.com, egger-russia.ru, jossbeaumont.ru, solidgroup.ru, maff.uz,
+  www.agt.com.tr, pan-raspil.com, www.tbm.ru, media.tbm.ru.
+- **Формулы «Ламинат» F/G/H** (толщина, класс, фаска) считаются из колонки B — не перезаписывать числами (25.11
+  пришлось восстанавливать в 184 строках). Класс Бамонта меняется через B («12/34 ёлка»), не через G.
+- **Стеновые профили AGT** — лист «Стеновые панели и профили»: карточка = форма LB-xxxx + декор, размеры
+  «Панель / Планка A / Планка B»; фото — pan-raspil.com и tbm.ru (разрешил владелец), подробности README 25.11.
 - **Таблица:** «7/31» Google превращает в дату — `Code.gs` и `index.html` это исправляют; «+» писать как `'+`.
   Длинные столбцы (500+ строк) не вставлять руками — менять через findReplace/repeatCell или формировать скриптом.
 - Владелец не видит новое в боте сразу — Telegram держит старую страницу: закрыть каталог полностью и открыть снова.
