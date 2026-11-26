@@ -519,7 +519,9 @@ function buildCatalog_() {
       d: x.decor,
       q: total,
       w: x.w,
-      u: x.unit || (variants.length ? 'шт' : ''),
+      // «шт» по умолчанию — только у листов с размерами в штуках (двери и т.п.);
+      // ламинат с выбором «Левая/Правая» остаётся в м².
+      u: x.unit || (variants.length && x.cat !== o.defCat ? 'шт' : ''),
       i: img || '',
     };
     if (x.color) item.o = x.color;      // фильтр «Цвет»
@@ -593,10 +595,13 @@ function imageMap_() {
   }
 
   const map = {};
+  SCAN_TIME_ = {};
   scanFolder_(DriveApp.getFolderById(o.imgFolder), map, 0);
   writeChunks_('img', JSON.stringify(map), Math.round(o.imgHours * 3600));
   return map;
 }
+
+let SCAN_TIME_ = {};   // время создания файла, победившего по полному имени
 
 function scanFolder_(folder, map, depth) {
   if (depth > CFG.MAX_DEPTH) return;
@@ -607,7 +612,12 @@ function scanFolder_(folder, map, depth) {
     const base = f.getName().replace(/\.[^.]+$/, '');
     const id   = f.getId();                        // страница строит адрес сама — данные короче
 
-    map[norm_(base)] = id;                         // по полному имени файла
+    // По полному имени файла. Если в «Каталоге» два файла с одним именем, побеждает более новый:
+    // так новая карточка или фото завода встаёт первой, даже если старый файл владельца
+    // приложение не может убрать в архив.
+    const key = norm_(base);
+    const t   = f.getDateCreated().getTime();
+    if (!(key in map) || t >= (SCAN_TIME_[key] || 0)) { map[key] = id; SCAN_TIME_[key] = t; }
 
     const lk = looseKey_(base);                    // и без знаков, запрещённых в Windows
     if (lk && !(lk in map)) map[lk] = id;

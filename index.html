@@ -647,6 +647,8 @@
   function unitOf(it){
     var u = String(it.u || '').toLowerCase();
     if (!u || u === 'м²' || u === 'м2' || u === 'm2') return T().m2;
+    // старый скрипт таблицы ставил «шт» всем товарам с размерами — ламинат всегда в м²
+    if ((u === 'шт' || u === 'шт.') && /ламинат/i.test(it.k || '')) return T().m2;
     if (u === 'шт' || u === 'шт.') return T().pcs;
     return it.u;
   }
